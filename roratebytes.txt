@@ -1,0 +1,22 @@
+module rotate_byte_left (in,out);
+input [0:7] in;
+output reg[0:7] out;
+
+always @(*) begin
+  out = {in[2:7], in[0:1]};
+end
+endmodule
+
+-------------------------
+module testbench;
+
+reg [0:7] in;
+wire [0:7] out;
+
+rotate_byte_left test (in, out);
+
+initial begin
+    in = 8'b00000001;
+   #1 $display("result = %b",out);
+end
+endmodule

@@ -1,0 +1,160 @@
+module shift_rows_up (in,result);
+input [0:127] in;
+output [0:127] result;
+
+wire [0:127] temp;
+
+assign temp[0:31] = in[32:63];
+assign temp[32:63] = in[64:95];
+assign temp[64:95] = in[96:127];
+assign temp[96:127] = in[0:31];
+
+assign result[0:127] = temp[0:127];
+
+endmodule
+
+
+module shift_columns_left (in,result);
+ input [0:127] in;
+output [0:127] result;
+// Temporary storage for the shifted matrix
+wire [0:127] temp;
+
+// 1 --> 3
+assign temp[0:7] = in[16:23];
+assign temp[16:23] = in[0:7];
+// 5 --> 7
+assign temp[32:39] = in[48:55];
+assign temp[48:55] = in[32:39];
+// 9 --> 11
+assign temp[64:71] = in[80:87];
+assign temp[80:87] = in[64:71];
+// 13 --> 15
+assign temp[96:103] = in[112:119];
+assign temp[112:119] = in[96:103];
+// 2 --> 4
+assign temp[8:15] = in[24:31];
+assign temp[24:31] = in[8:15];
+// 6--> 8
+assign temp[40:47] = in[56:63];
+assign temp[56:63] = in[40:47];
+// 10--> 12
+assign temp[72:79] = in[88:95];
+assign temp[88:95] = in[72:79];
+//14 --> 16
+assign temp[104:111] = in[120:127];
+assign temp[120:127] = in[104:111];
+
+
+assign result = temp;
+
+endmodule
+
+
+
+
+module rotate_byte_left (in,out);
+input [0:7] in;
+output reg[0:7] out;
+
+always @(*) begin
+  out = {in[2:7], in[0:1]};
+end
+endmodule
+
+module rotate (in, out);
+input [0:127]in;
+output [0:127] out;
+rotate_byte_left B1 (in[0:7],out[0:7]);
+rotate_byte_left B2 (in[8:15],out[8:15]);
+rotate_byte_left B3 (in[16:23],out[16:23]);
+rotate_byte_left B4 (in[24:31],out[24:31]);
+rotate_byte_left B5 (in[32:39],out[32:39]);
+rotate_byte_left B6 (in[40:47],out[40:47]);
+rotate_byte_left B7 (in[48:55],out[48:55]);
+rotate_byte_left B8 (in[56:63],out[56:63]);
+rotate_byte_left B9 (in[64:71],out[64:71]);
+rotate_byte_left B10 (in[72:79],out[72:79]);
+rotate_byte_left B11 (in[80:87],out[80:87]);
+rotate_byte_left B12 (in[88:95],out[88:95]);
+rotate_byte_left B13 (in[96:103],out[96:103]);
+rotate_byte_left B14 (in[104:111],out[104:111]);
+rotate_byte_left B15 (in[112:119],out[112:119]);
+rotate_byte_left B16 (in[120:127],out[120:127]);
+endmodule
+
+
+module pipelined (clk, in, out);
+input clk;
+input [0:127]in;
+output  [0:127]out;
+wire [0:127]Row;
+wire [0:127]Column;
+wire [0:127]rotatt;
+reg [0:127] stage1;
+reg [0:127] stage2;
+reg [0:127] stage3;
+
+shift_columns_left shift1 (in,Column);
+
+always @(posedge clk) begin
+  stage1 <= Column;
+end
+
+shift_rows_up shift2 (stage1,Row);
+
+always @(posedge clk) begin
+  stage2 <= Row;
+end
+rotate rota (stage2,rotatt);
+
+always @(posedge clk) begin
+ stage3 <= rotatt;
+end
+assign out = stage3;
+endmodule
+
+
+
+
+module testbench;
+
+reg clk;
+reg [0:127] in;
+wire [0:127] out;
+
+pipelined test (clk, in, out);
+
+initial begin
+    clk = 0;
+    forever begin
+        #5 clk = ~clk;
+    end
+end
+
+initial begin
+  $dumpfile("dump.vcd");
+$dumpvars;
+  
+    in = 'h1234_5678_9abc_def0;
+    #10 $display("in = %h, out = %h", in, out);
+    in = 'h5555_5555_5555_5555;
+    #10 $display("in = %h, out = %h", in, out);
+    in = 'haaaa_aaaa_aaaa_aaaa;
+    #10 $display("in = %h, out = %h", in, out);
+    in = 'h3333_3333_3333_3333;
+    #10 $display("in = %h, out = %h", in, out);
+    in = 'hcccc_cccc_cccc_cccc;
+    #10 $display("in = %h, out = %h", in, out);
+    in = 'h1111_1111_1111_1111;
+    #10 $display("in = %h, out = %h", in, out);
+    in = 'hf0f0_f0f0_f0f0_f0f0;
+    #10 $display("in = %h, out = %h", in, out);
+    in = 'hfafa_fafa_fafa_fafa;
+    #10 $display("in = %h, out = %h", in, out);
+  #10 $display("        		 	   	out = %h",  out);
+  #10 $display("       		   	    		out = %h",  out);
+  
+    $finish;
+    end
+    endmodule
